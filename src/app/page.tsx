@@ -303,22 +303,21 @@ function Grid({ products, onOrder }: { products: Product[]; onOrder: (p: Product
 }
 
 function MovingTagline() {
-  // gabung semua kalimat dengan bullet
   const content = TAGLINE_LINES.join('   •   ');
 
   return (
     <div className="bg-pink-100/70 text-pink-800 border-b border-pink-100">
-      <div className={`${CONTAINER} py-2`}>
-        <div className="relative overflow-hidden">
-          {/* masking kiri–kanan supaya fade di tepi */}
+      <div className={`${CONTAINER}`}>
+        {/* FIX: tinggi tetap + center vertikal + overflow-hidden */}
+        <div className="relative h-10 sm:h-11 overflow-hidden flex items-center">
           <motion.div
-            className="flex whitespace-nowrap text-sm font-medium [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]"
+            className="flex whitespace-nowrap gap-12 [mask-image:linear-gradient(to_right,transparent,black_12%,black_88%,transparent)] will-change-transform"
             animate={{ x: ['0%', '-50%'] }}
             transition={{ repeat: Infinity, duration: 20, ease: 'linear' }}
           >
-            {/* dua salinan supaya loop mulus */}
-            <span className="pr-12">{content}</span>
-            <span className="pr-12" aria-hidden>{content}</span>
+            {/* teks dibuat sedikit lebih kecil supaya tidak mentok */}
+            <span className="text-xs sm:text-sm font-medium">{content}</span>
+            <span className="text-xs sm:text-sm font-medium" aria-hidden>{content}</span>
           </motion.div>
         </div>
       </div>
