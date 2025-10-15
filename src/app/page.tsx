@@ -1,103 +1,224 @@
-import Image from "next/image";
+'use client'
 
-export default function Home() {
+import { useMemo, useState } from 'react'
+import { motion } from 'framer-motion'
+import { Search, ShoppingCart, Filter } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+
+// --- KONFIGURASI UTAMA ---
+const WA_NUMBER = '6285716261499'
+const CATEGORIES = ['Semua', 'BUKET READY', 'BUNGA ARTIFICIAL'] as const
+type Category = (typeof CATEGORIES)[number]
+
+type Product = {
+  id: string
+  name: string
+  price: number
+  category: Category
+  image: string
+}
+
+const PRODUCTS: Product[] = [
+  // --- BUKET READY ---
+  { id: 'BR-295', name: 'Buket Ready – Mawar Mix', price: 295000, category: 'BUKET READY', image: '/images/buket ready/1.jpg' },
+  { id: 'BR-250', name: 'Buket Ready – Sunflower', price: 250000, category: 'BUKET READY', image: '/images/buket ready/2.jpg' },
+  { id: 'BR-165', name: 'Buket Ready – Pastel Mini', price: 165000, category: 'BUKET READY', image: '/images/buket ready/3.jpg' },
+  { id: 'BR-200', name: 'Buket Ready – Pink Lily', price: 200000, category: 'BUKET READY', image: '/images/buket ready/4.jpg' },
+  { id: 'BR-165b', name: 'Buket Ready – Red Rose', price: 165000, category: 'BUKET READY', image: '/images/buket ready/5.jpg' },
+  { id: 'BR-235', name: 'Buket Ready – Pink Elegant', price: 235000, category: 'BUKET READY', image: '/images/buket ready/6.jpg' },
+]
+const fmtIDR = (n: number) =>
+  new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
+
+export default function Page() {
+  const [search, setSearch] = useState('')
+  const [cat, setCat] = useState<Category>('Semua')
+  const [maxPrice, setMaxPrice] = useState(500000)
+  const [sort, setSort] = useState<'termurah' | 'termahal' | 'az'>('termurah')
+
+  // Hasil terfilter (cari + kategori + slider harga + urutkan)
+  const filtered = useMemo(() => {
+    let data = PRODUCTS.filter(
+      (p) =>
+        (cat === 'Semua' || p.category === cat) &&
+        p.name.toLowerCase().includes(search.toLowerCase()) &&
+        p.price <= maxPrice
+    )
+    if (sort === 'termurah') data = [...data].sort((a, b) => a.price - b.price)
+    if (sort === 'termahal') data = [...data].sort((a, b) => b.price - a.price)
+    if (sort === 'az') data = [...data].sort((a, b) => a.name.localeCompare(b.name))
+    return data
+  }, [search, cat, maxPrice, sort])
+
+  const openWA = (p: Product) => {
+    const text = `Halo, saya ingin pesan ${p.name} (${p.id}) - ${fmtIDR(p.price)}`
+    window.open(`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(text)}`, '_blank')
+  }
+
+  // Grup per kategori untuk BERANDA (tapi pakai data TERFILTER!)
+  const filteredBySection = useMemo(() => {
+    const sections: Record<'BUKET READY' | 'BUNGA ARTIFICIAL', Product[]> = {
+      'BUKET READY': [],
+      'BUNGA ARTIFICIAL': [],
+    }
+    for (const p of filtered) {
+      if (p.category === 'BUKET READY' || p.category === 'BUNGA ARTIFICIAL') {
+        sections[p.category].push(p)
+      }
+    }
+    return sections
+  }, [filtered])
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <main className="min-h-screen bg-gradient-to-b from-pink-50 to-white">
+      {/* HEADER */}
+      <header className="sticky top-0 bg-white/80 backdrop-blur border-b border-pink-100 z-10">
+        <div className="max-w-6xl mx-auto flex flex-wrap gap-3 justify-between items-center p-4">
+          <h1 className="text-2xl font-bold text-pink-600">COVAPOSH</h1>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+          <div className="flex-1 max-w-xl flex items-center gap-2">
+            <Search className="text-gray-500" />
+            <Input
+              placeholder="Cari produk…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+          </div>
+
+          <Button variant="outline" className="flex items-center gap-2">
+            <ShoppingCart size={18} /> Pesanan
+          </Button>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+      </header>
+
+      {/* FILTER SECTION */}
+      <section className="max-w-6xl mx-auto p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-6 rounded-2xl bg-white p-4 shadow-sm border border-pink-100">
+          <div className="flex flex-wrap gap-2">
+            {CATEGORIES.map((c) => (
+              <Button
+                key={c}
+                variant={cat === c ? 'default' : 'outline'}
+                className="rounded-2xl"
+                onClick={() => setCat(c)}
+              >
+                {c}
+              </Button>
+            ))}
+          </div>
+
+          {/* Filter harga & urutan */}
+          <div className="flex flex-wrap items-center gap-4 text-sm text-gray-700">
+            <div>
+              <label className="block text-xs text-gray-500">Batas harga: {fmtIDR(maxPrice)}</label>
+              <input
+                type="range"
+                min={100000}
+                max={500000}
+                step={50000}
+                value={maxPrice}
+                onChange={(e) => setMaxPrice(Number(e.target.value))}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Filter size={16} />
+              <select
+                value={sort}
+                onChange={(e) => setSort(e.target.value as any)}
+                className="border rounded-md px-2 py-1 text-sm"
+              >
+                <option value="termurah">Harga terendah</option>
+                <option value="termahal">Harga tertinggi</option>
+                <option value="az">Nama (A-Z)</option>
+              </select>
+            </div>
+            <div>
+              WhatsApp:{' '}
+              <a
+                href={`https://wa.me/${WA_NUMBER}`}
+                target="_blank"
+                rel="noreferrer"
+                className="font-semibold text-pink-600 hover:underline"
+              >
+                +62 857-1626-1499
+              </a>
+            </div>
+          </div>
+        </div>
+
+        {/* HASIL */}
+        {(cat !== 'Semua' || search) ? (
+          <>
+            <h2 className="text-xl font-semibold mb-3 text-gray-700">
+              {cat !== 'Semua' ? cat : 'Hasil Pencarian'}
+            </h2>
+            <Grid products={filtered} onOrder={openWA} />
+          </>
+        ) : (
+          // BERANDA: tetap tampil per-kategori, tapi dari DATA TERFILTER
+          <>
+            {(['BUKET READY', 'BUNGA ARTIFICIAL'] as const).map((section) => (
+              <div key={section} className="mb-8">
+                <div className="flex items-baseline justify-between mb-3">
+                  <h3 className="text-lg font-semibold">{section}</h3>
+                  <button
+                    className="text-sm text-pink-600 hover:underline"
+                    onClick={() => setCat(section)}
+                  >
+                    Lihat semua
+                  </button>
+                </div>
+                <Grid products={filteredBySection[section]} onOrder={openWA} />
+              </div>
+            ))}
+          </>
+        )}
+      </section>
+
+      {/* FOOTER */}
+      <footer className="text-center py-6 text-gray-500 text-sm border-t mt-10">
+        © {new Date().getFullYear()} <span className="font-semibold text-pink-600">COVAPOSH</span>. All rights reserved.
       </footer>
+
+      {/* Floating WhatsApp */}
+      <button
+        onClick={() =>
+          window.open(
+            `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent('Halo COVAPOSH! Saya mau pesan buket 😊')}`,
+            '_blank'
+          )
+        }
+        className="fixed bottom-5 right-5 z-50 rounded-full shadow-xl px-5 py-3 bg-pink-600 text-white font-semibold hover:bg-pink-700"
+      >
+        Chat WhatsApp
+      </button>
+    </main>
+  )
+}
+
+function Grid({ products, onOrder }: { products: Product[]; onOrder: (p: Product) => void }) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+      {products.map((p) => (
+        <motion.div key={p.id} whileHover={{ scale: 1.02 }} transition={{ duration: 0.2 }}>
+          <Card className="overflow-hidden shadow-md hover:shadow-lg flex flex-col">
+            <div className="w-full h-64 sm:h-60 md:h-64 lg:h-72 bg-pink-100">
+              <img src={p.image} alt={p.name} loading="lazy" className="w-full h-full object-cover" />
+            </div>
+            <CardContent className="p-4 flex flex-col grow">
+              <h4 className="font-semibold text-lg text-gray-800">{p.name}</h4>
+              <p className="text-pink-600 font-medium mt-1">{fmtIDR(p.price)}</p>
+              <div className="mt-auto flex justify-between items-center pt-3">
+                <Badge variant="secondary">{p.category}</Badge>
+                <Button size="sm" onClick={() => onOrder(p)}>Pesan</Button>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      ))}
     </div>
-  );
+  )
 }
