@@ -34,11 +34,18 @@ const PRODUCTS: Product[] = [
   { id: 'BR-165b',name: 'Buket Ready – Red Rose',    price: 165000, category: 'BUKET READY',     image: '/images/buket ready/5.jpg' },
   { id: 'BR-235', name: 'Buket Ready – Pink Elegant',price: 235000, category: 'BUKET READY',     image: '/images/buket ready/6.jpg' },
 
-  // --- contoh BUNGA ARTIFICIAL (opsional, tambahkan gambar di public/images/bunga artificial/) ---
-  // { id: 'AR-235', name: 'Artificial – Mini Red',     price: 235000, category: 'BUNGA ARTIFICIAL', image: '/images/bunga artificial/1.jpg' },
-  // { id: 'AR-350', name: 'Artificial – Pink Elegant', price: 350000, category: 'BUNGA ARTIFICIAL', image: '/images/bunga artificial/2.jpg' },
-  // { id: 'AR-245', name: 'Artificial – Blue Bloom',   price: 245000, category: 'BUNGA ARTIFICIAL', image: '/images/bunga artificial/3.jpg' },
-];
+  // --- BUNGA ARTIFICIAL ---
+  { id: 'AR-235', name: 'Bunga Artificial – Mini Red', price: 235000, category: 'BUNGA ARTIFICIAL', image: '/images/bunga artificial/1.jpg' },
+  { id: 'AR-350', name: 'Bunga Artificial – Pink Elegant', price: 350000, category: 'BUNGA ARTIFICIAL', image: '/images/bunga artificial/2.jpg' },
+  { id: 'AR-245', name: 'Bunga Artificial – Blue Bloom', price: 245000, category: 'BUNGA ARTIFICIAL', image: '/images/bunga artificial/3.jpg' },
+  { id: 'AR-650', name: 'Buket bunga artificial premium', price: 650000, category: 'BUNGA ARTIFICIAL', image: '/images/bunga artificial/4.jpg' },
+  { id: 'AR-300', name: 'Bunga Artificial – Pink Soft', price: 300000, category: 'BUNGA ARTIFICIAL', image: '/images/bunga artificial/5.jpg' },
+  { id: 'AR-265', name: 'Bunga Artificial – Mix Classic', price: 265000, category: 'BUNGA ARTIFICIAL', image: '/images/bunga artificial/6.jpg' },
+  { id: 'AR-120', name: 'Bunga Artificial Mix Hologram', price: 120000, category: 'BUNGA ARTIFICIAL', image: '/images/bunga artificial/7.jpg' },
+  { id: 'AR-100', name: 'Buket bunga artificial', price: 100000, category: 'BUNGA ARTIFICIAL', image: '/images/bunga artificial/8.jpg' },
+  { id: 'AR-150', name: 'Buket foto mix', price: 150000, category: 'BUNGA ARTIFICIAL', image: '/images/bunga artificial/9.jpg' },
+  { id: 'AR-175', name: 'Bunga Artificial – Mini Bouquet', price: 175000, category: 'BUNGA ARTIFICIAL', image: '/images/bunga artificial/10.jpg' },
+ ]
 
 const fmtIDR = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n);
