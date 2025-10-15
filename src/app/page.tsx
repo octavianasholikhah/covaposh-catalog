@@ -1,43 +1,53 @@
-'use client'
+'use client';
 
-import { useMemo, useState } from 'react'
-import { motion } from 'framer-motion'
-import { Search, ShoppingCart, Filter } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
+import { useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
+import { Search, ShoppingCart, Filter } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import Image from 'next/image'; // <-- pakai next/image
 
 // --- KONFIGURASI UTAMA ---
-const WA_NUMBER = '6285716261499'
-const CATEGORIES = ['Semua', 'BUKET READY', 'BUNGA ARTIFICIAL'] as const
-type Category = (typeof CATEGORIES)[number]
+const WA_NUMBER = '6285716261499';
+const CATEGORIES = ['Semua', 'BUKET READY', 'BUNGA ARTIFICIAL'] as const;
+type Category = (typeof CATEGORIES)[number];
+type RealCategory = Exclude<Category, 'Semua'>; // kategori yang valid untuk produk
+type Sort = 'termurah' | 'termahal' | 'az';
 
 type Product = {
-  id: string
-  name: string
-  price: number
-  category: Category
-  image: string
-}
+  id: string;
+  name: string;
+  price: number;
+  category: RealCategory;
+  image: string;
+};
 
+// --- DATA PRODUK (tambahkan sesuai kebutuhan) ---
 const PRODUCTS: Product[] = [
   // --- BUKET READY ---
-  { id: 'BR-295', name: 'Buket Ready – Mawar Mix', price: 295000, category: 'BUKET READY', image: '/images/buket ready/1.jpg' },
-  { id: 'BR-250', name: 'Buket Ready – Sunflower', price: 250000, category: 'BUKET READY', image: '/images/buket ready/2.jpg' },
-  { id: 'BR-165', name: 'Buket Ready – Pastel Mini', price: 165000, category: 'BUKET READY', image: '/images/buket ready/3.jpg' },
-  { id: 'BR-200', name: 'Buket Ready – Pink Lily', price: 200000, category: 'BUKET READY', image: '/images/buket ready/4.jpg' },
-  { id: 'BR-165b', name: 'Buket Ready – Red Rose', price: 165000, category: 'BUKET READY', image: '/images/buket ready/5.jpg' },
-  { id: 'BR-235', name: 'Buket Ready – Pink Elegant', price: 235000, category: 'BUKET READY', image: '/images/buket ready/6.jpg' },
-]
+  { id: 'BR-295', name: 'Buket Ready – Mawar Mix',   price: 295000, category: 'BUKET READY',     image: '/images/buket ready/1.jpg' },
+  { id: 'BR-250', name: 'Buket Ready – Sunflower',   price: 250000, category: 'BUKET READY',     image: '/images/buket ready/2.jpg' },
+  { id: 'BR-165', name: 'Buket Ready – Pastel Mini', price: 165000, category: 'BUKET READY',     image: '/images/buket ready/3.jpg' },
+  { id: 'BR-200', name: 'Buket Ready – Pink Lily',   price: 200000, category: 'BUKET READY',     image: '/images/buket ready/4.jpg' },
+  { id: 'BR-165b',name: 'Buket Ready – Red Rose',    price: 165000, category: 'BUKET READY',     image: '/images/buket ready/5.jpg' },
+  { id: 'BR-235', name: 'Buket Ready – Pink Elegant',price: 235000, category: 'BUKET READY',     image: '/images/buket ready/6.jpg' },
+
+  // --- contoh BUNGA ARTIFICIAL (opsional, tambahkan gambar di public/images/bunga artificial/) ---
+  // { id: 'AR-235', name: 'Artificial – Mini Red',     price: 235000, category: 'BUNGA ARTIFICIAL', image: '/images/bunga artificial/1.jpg' },
+  // { id: 'AR-350', name: 'Artificial – Pink Elegant', price: 350000, category: 'BUNGA ARTIFICIAL', image: '/images/bunga artificial/2.jpg' },
+  // { id: 'AR-245', name: 'Artificial – Blue Bloom',   price: 245000, category: 'BUNGA ARTIFICIAL', image: '/images/bunga artificial/3.jpg' },
+];
+
 const fmtIDR = (n: number) =>
-  new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
+  new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n);
 
 export default function Page() {
-  const [search, setSearch] = useState('')
-  const [cat, setCat] = useState<Category>('Semua')
-  const [maxPrice, setMaxPrice] = useState(500000)
-  const [sort, setSort] = useState<'termurah' | 'termahal' | 'az'>('termurah')
+  const [search, setSearch] = useState('');
+  const [cat, setCat] = useState<Category>('Semua');
+  const [maxPrice, setMaxPrice] = useState(500000);
+  const [sort, setSort] = useState<Sort>('termurah');
 
   // Hasil terfilter (cari + kategori + slider harga + urutkan)
   const filtered = useMemo(() => {
@@ -46,31 +56,29 @@ export default function Page() {
         (cat === 'Semua' || p.category === cat) &&
         p.name.toLowerCase().includes(search.toLowerCase()) &&
         p.price <= maxPrice
-    )
-    if (sort === 'termurah') data = [...data].sort((a, b) => a.price - b.price)
-    if (sort === 'termahal') data = [...data].sort((a, b) => b.price - a.price)
-    if (sort === 'az') data = [...data].sort((a, b) => a.name.localeCompare(b.name))
-    return data
-  }, [search, cat, maxPrice, sort])
+    );
+    if (sort === 'termurah') data = [...data].sort((a, b) => a.price - b.price);
+    if (sort === 'termahal') data = [...data].sort((a, b) => b.price - a.price);
+    if (sort === 'az') data = [...data].sort((a, b) => a.name.localeCompare(b.name));
+    return data;
+  }, [search, cat, maxPrice, sort]);
 
   const openWA = (p: Product) => {
-    const text = `Halo, saya ingin pesan ${p.name} (${p.id}) - ${fmtIDR(p.price)}`
-    window.open(`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(text)}`, '_blank')
-  }
+    const text = `Halo, saya ingin pesan ${p.name} (${p.id}) - ${fmtIDR(p.price)}`;
+    window.open(`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(text)}`, '_blank');
+  };
 
-  // Grup per kategori untuk BERANDA (tapi pakai data TERFILTER!)
+  // Grup per kategori untuk BERANDA (pakai data TERFILTER)
   const filteredBySection = useMemo(() => {
-    const sections: Record<'BUKET READY' | 'BUNGA ARTIFICIAL', Product[]> = {
+    const sections: Record<RealCategory, Product[]> = {
       'BUKET READY': [],
       'BUNGA ARTIFICIAL': [],
-    }
+    };
     for (const p of filtered) {
-      if (p.category === 'BUKET READY' || p.category === 'BUNGA ARTIFICIAL') {
-        sections[p.category].push(p)
-      }
+      sections[p.category].push(p);
     }
-    return sections
-  }, [filtered])
+    return sections;
+  }, [filtered]);
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-pink-50 to-white">
@@ -127,12 +135,12 @@ export default function Page() {
               <Filter size={16} />
               <select
                 value={sort}
-                onChange={(e) => setSort(e.target.value as any)}
+                onChange={(e) => setSort(e.target.value as Sort)}  // <-- tanpa any
                 className="border rounded-md px-2 py-1 text-sm"
               >
                 <option value="termurah">Harga terendah</option>
                 <option value="termahal">Harga tertinggi</option>
-                <option value="az">Nama (A-Z)</option>
+                <option value="az">Nama (A–Z)</option>
               </select>
             </div>
             <div>
@@ -158,7 +166,7 @@ export default function Page() {
             <Grid products={filtered} onOrder={openWA} />
           </>
         ) : (
-          // BERANDA: tetap tampil per-kategori, tapi dari DATA TERFILTER
+          // BERANDA: tampil per-kategori dari data TERFILTER
           <>
             {(['BUKET READY', 'BUNGA ARTIFICIAL'] as const).map((section) => (
               <div key={section} className="mb-8">
@@ -196,7 +204,7 @@ export default function Page() {
         Chat WhatsApp
       </button>
     </main>
-  )
+  );
 }
 
 function Grid({ products, onOrder }: { products: Product[]; onOrder: (p: Product) => void }) {
@@ -205,8 +213,16 @@ function Grid({ products, onOrder }: { products: Product[]; onOrder: (p: Product
       {products.map((p) => (
         <motion.div key={p.id} whileHover={{ scale: 1.02 }} transition={{ duration: 0.2 }}>
           <Card className="overflow-hidden shadow-md hover:shadow-lg flex flex-col">
-            <div className="w-full h-64 sm:h-60 md:h-64 lg:h-72 bg-pink-100">
-              <img src={p.image} alt={p.name} loading="lazy" className="w-full h-full object-cover" />
+            {/* pakai next/image */}
+            <div className="w-full h-64 sm:h-60 md:h-64 lg:h-72 bg-pink-100 relative">
+              <Image
+                src={p.image}
+                alt={p.name}
+                fill
+                sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                className="object-cover"
+                priority={false}
+              />
             </div>
             <CardContent className="p-4 flex flex-col grow">
               <h4 className="font-semibold text-lg text-gray-800">{p.name}</h4>
@@ -220,5 +236,5 @@ function Grid({ products, onOrder }: { products: Product[]; onOrder: (p: Product
         </motion.div>
       ))}
     </div>
-  )
+  );
 }
