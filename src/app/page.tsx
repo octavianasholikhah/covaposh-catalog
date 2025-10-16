@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link'
 import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Search, ShoppingCart, Filter } from 'lucide-react';
@@ -121,9 +122,11 @@ export default function Page() {
             <Input placeholder="Cari produk…" value={search} onChange={e => setSearch(e.target.value)} />
           </div>
 
-          <Button variant="outline" className="flex items-center gap-2">
+         <Button variant="outline" asChild>
+          <Link href="/pesanan" aria-label="Lihat pesanan" className="flex items-center gap-2">
             <ShoppingCart size={18} /> Pesanan
-          </Button>
+          </Link>
+        </Button>
         </div>
       </header>
 
