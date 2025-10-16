@@ -273,37 +273,54 @@ export default function Page() {
 
 function Grid({ products, onOrder }: { products: Product[]; onOrder: (p: Product) => void }) {
   return (
-    // 6 kolom di xl, responsif di bawahnya
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 items-stretch">
-      {products.map(p => (
-        <motion.div key={p.id} whileHover={{ scale: 1.02 }} transition={{ duration: 0.2 }} className="h-full">
-          <Card className="h-full flex flex-col overflow-hidden shadow-sm hover:shadow-md">
-            <div className="relative bg-pink-100 aspect-[4/5]">
-              <Image
-                src={p.image}
-                alt={`Foto ${p.name}`}
-                title={p.name}
-                fill
-                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
-                className="object-cover"
-              />
-            </div>
-            <CardContent className="p-3 flex flex-col grow">
-              <h4 className="font-semibold text-base text-gray-800 line-clamp-2 min-h-[48px]">{p.name}</h4>
-              <p className="text-pink-600 font-medium mt-1 text-sm">{fmtIDR(p.price)}</p>
-              <div className="mt-auto flex justify-between items-center pt-2">
-                <Badge variant="secondary" className="text-[10px]">{p.category}</Badge>
-                <Button size="sm" className="h-8 px-3" onClick={() => onOrder(p)} aria-label={`Pesan ${p.name}`}>
-                  Pesan
-                </Button>
+    <div className="relative">
+      {/* wadah yang bisa discroll horizontal */}
+      <div className="flex overflow-x-auto gap-4 pb-4 scrollbar-thin scrollbar-thumb-pink-300 scrollbar-track-pink-100 snap-x snap-mandatory">
+        {products.map((p) => (
+          <motion.div
+            key={p.id}
+            whileHover={{ scale: 1.03 }}
+            transition={{ duration: 0.2 }}
+            className="min-w-[220px] sm:min-w-[240px] md:min-w-[260px] snap-start flex-shrink-0"
+          >
+            <Card className="h-full flex flex-col overflow-hidden shadow-sm hover:shadow-md">
+              <div className="relative bg-pink-100 aspect-[4/5]">
+                <Image
+                  src={p.image}
+                  alt={`Foto ${p.name}`}
+                  title={p.name}
+                  fill
+                  sizes="(max-width: 640px) 80vw, (max-width: 1024px) 40vw, 25vw"
+                  className="object-cover"
+                />
               </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-      ))}
+              <CardContent className="p-3 flex flex-col grow">
+                <h4 className="font-semibold text-base text-gray-800 line-clamp-2 min-h-[48px]">
+                  {p.name}
+                </h4>
+                <p className="text-pink-600 font-medium mt-1 text-sm">{fmtIDR(p.price)}</p>
+                <div className="mt-auto flex justify-between items-center pt-2">
+                  <Badge variant="secondary" className="text-[10px]">
+                    {p.category}
+                  </Badge>
+                  <Button
+                    size="sm"
+                    className="h-8 px-3"
+                    onClick={() => onOrder(p)}
+                    aria-label={`Pesan ${p.name}`}
+                  >
+                    Pesan
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        ))}
+      </div>
     </div>
   );
 }
+
 
 function MovingTagline() {
   const content = TAGLINE_LINES.join('   •   ');
