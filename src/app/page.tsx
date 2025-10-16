@@ -15,8 +15,8 @@ type Category = (typeof CATEGORIES)[number];
 type RealCategory = Exclude<Category, 'Semua'>;
 type Sort = 'termurah' | 'termahal' | 'az';
 
-// container
-const CONTAINER = 'w-full max-w-[1200px] xl:max-w-[1280px] mx-auto px-3 sm:px-4';
+// container (Sedikit dilebarkan agar 6 kartu muat nyaman di xl)
+const CONTAINER = 'w-full max-w-[1400px] xl:max-w-[1500px] mx-auto px-3 sm:px-4';
 
 // ====== INFO BISNIS ======
 const TAGLINE_LINES = [
@@ -128,8 +128,7 @@ export default function Page() {
       </header>
 
       {/* TAGLINE BAR – berjalan */}
-<MovingTagline />
-
+      <MovingTagline />
 
       {/* FILTER + GRID */}
       <section className={`${CONTAINER} py-6`}>
@@ -271,7 +270,8 @@ export default function Page() {
 
 function Grid({ products, onOrder }: { products: Product[]; onOrder: (p: Product) => void }) {
   return (
-    <div className="grid [grid-template-columns:repeat(auto-fill,minmax(220px,1fr))] gap-4 items-stretch">
+    // 6 kolom di xl, responsif di bawahnya
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 items-stretch">
       {products.map(p => (
         <motion.div key={p.id} whileHover={{ scale: 1.02 }} transition={{ duration: 0.2 }} className="h-full">
           <Card className="h-full flex flex-col overflow-hidden shadow-sm hover:shadow-md">
@@ -308,14 +308,13 @@ function MovingTagline() {
   return (
     <div className="bg-pink-100/70 text-pink-800 border-b border-pink-100">
       <div className={`${CONTAINER}`}>
-        {/* FIX: tinggi tetap + center vertikal + overflow-hidden */}
+        {/* tinggi tetap + center vertikal + overflow-hidden */}
         <div className="relative h-10 sm:h-11 overflow-hidden flex items-center">
           <motion.div
             className="flex whitespace-nowrap gap-12 [mask-image:linear-gradient(to_right,transparent,black_12%,black_88%,transparent)] will-change-transform"
             animate={{ x: ['0%', '-50%'] }}
             transition={{ repeat: Infinity, duration: 20, ease: 'linear' }}
           >
-            {/* teks dibuat sedikit lebih kecil supaya tidak mentok */}
             <span className="text-xs sm:text-sm font-medium">{content}</span>
             <span className="text-xs sm:text-sm font-medium" aria-hidden>{content}</span>
           </motion.div>
