@@ -2,19 +2,21 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+// ❌ HAPUS import Textarea custom
+// import { Textarea } from "@/components/ui/textarea";
 
 // (opsional) import pembuat teks dari PRODUCTS biar cepat seed
 // import { makeCatalogText } from "@/utils/makeCatalogText";
 
 export default function IngestPage() {
-  const [source, setSource] = useState("faq-" + new Date().toISOString().slice(0,10));
+  const [source, setSource] = useState("faq-" + new Date().toISOString().slice(0, 10));
   const [text, setText] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function onIngest() {
-    setLoading(true); setMsg(null);
+    setLoading(true);
+    setMsg(null);
     const res = await fetch("/api/ingest", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -31,12 +33,18 @@ export default function IngestPage() {
 
       <div className="space-y-2">
         <label className="text-sm">Source (nama dataset)</label>
-        <Input value={source} onChange={(e)=>setSource(e.target.value)} />
+        <Input value={source} onChange={(e) => setSource(e.target.value)} />
       </div>
 
       <div className="space-y-2">
         <label className="text-sm">Teks (FAQ/katalog). Format bebas, Q/A makin bagus.</label>
-        <Textarea rows={14} value={text} onChange={(e)=>setText(e.target.value)} />
+        {/* ✅ pakai textarea native */}
+        <textarea
+          rows={14}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          className="w-full min-h-[240px] rounded-md border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-pink-300"
+        />
       </div>
 
       <div className="flex gap-2">
