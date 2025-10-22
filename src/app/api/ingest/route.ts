@@ -3,14 +3,10 @@ import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 import { createClient } from "@supabase/supabase-js";
 
-// hindari prerendering/collect data
+// Hindari prerender/collect-data di build
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
-
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+export const runtime = "nodejs";
 
 type FaqChunkRow = { source: string; chunk: string; embedding: number[] };
 
@@ -24,11 +20,18 @@ function splitIntoChunks(text: string, maxWords = 180, overlap = 40) {
   return chunks;
 }
 
-// buat client OpenAI secara LAZY di dalam handler
+// --- LAZY factories (jangan di top-level) ---
 function getOpenAI() {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error("OPENAI_API_KEY belum terpasang di runtime.");
   return new OpenAI({ apiKey });
+}
+
+function getSupabase() {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) throw new Error("SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY belum terpasang di runtime.");
+  return createClient(url, key);
 }
 
 export async function POST(req: NextRequest) {
@@ -38,7 +41,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "Body {text} kosong" }, { status: 400 });
     }
 
-    const openai = getOpenAI(); // ← inisialisasi disini
+    const openai = getOpenAI();      // ← dibuat di dalam handler
+    const supabase = getSupabase();  // ← dibuat di dalam handler
+
     const chunks = splitIntoChunks(text);
 
     const emb = await openai.embeddings.create({
