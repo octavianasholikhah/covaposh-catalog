@@ -1,26 +1,15 @@
 "use client";
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+
+// NOTE: endpoint baru, kalau kamu sudah bikin /api/ingest2 pakai ini.
+// Kalau masih /api/ingest, ubah jadi "/api/ingest".
+const API_PATH = "/api/ingest2";
 
 export default function IngestPage() {
   const [source, setSource] = useState("faq-" + new Date().toISOString().slice(0, 10));
-  const [text, setText] = useState(
-`Q: Metode pembayaran apa yang tersedia?
-A: Transfer bank/e-wallet. Rincian akan kami kirim saat konfirmasi pesanan.
-
-Q: Di mana lihat contoh produk?
-A: Lihat katalog di situs atau Instagram @covaposh. Tiap kartu produk di situs menampilkan foto, nama, dan harga (jika tersedia).
-
-Q: Apakah ada same-day order?
-A: Ada untuk buket ready dan beberapa custom sederhana (selama material tersedia). Disarankan chat dulu untuk kepastian slot.
-
-Q: Link Google Maps COVAPOSH?
-A: https://maps.app.goo.gl/DhhRScPU9Sxp3rMd9`
-  );
-
+  const [text, setText] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -28,19 +17,15 @@ A: https://maps.app.goo.gl/DhhRScPU9Sxp3rMd9`
     setLoading(true);
     setMsg(null);
     try {
-      const res = await fetch("/api/ingest", {
+      const res = await fetch(API_PATH, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ source, text }),
       });
       const data = await res.json();
-      if (res.ok && data.ok) {
-        setMsg(`✅ Inserted ${data.inserted} chunks`);
-      } else {
-        setMsg(`❌ ${data.error || "Gagal ingest."}`);
-      }
-    } catch (e) {
-      setMsg(`❌ ${e instanceof Error ? e.message : String(e)}`);
+      setMsg(data.ok ? `✅ Inserted ${data.inserted} chunks` : `❌ ${data.error}`);
+    } catch (e: unknown) {
+      setMsg(`❌ ${(e as Error).message}`);
     } finally {
       setLoading(false);
     }
@@ -52,12 +37,19 @@ A: https://maps.app.goo.gl/DhhRScPU9Sxp3rMd9`
 
       <div className="space-y-2">
         <label className="text-sm">Source (nama dataset)</label>
-        <Input value={source} onChange={(e)=>setSource(e.target.value)} />
+        <Input value={source} onChange={(e) => setSource(e.target.value)} />
       </div>
 
       <div className="space-y-2">
         <label className="text-sm">Teks (FAQ/katalog). Format bebas, disarankan Q/A.</label>
-        <Textarea rows={16} value={text} onChange={(e)=>setText(e.target.value)} />
+        {/* Textarea native: tidak butuh import */}
+        <textarea
+          rows={14}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          className="w-full min-h-[220px] rounded-md border border-gray-300 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-pink-400"
+          placeholder={`Contoh:\nQ: Alamat toko?\nA: Jl. Cemara No 13B, Gejayan, Depok, Sleman.`}
+        />
       </div>
 
       <div className="flex gap-2">
