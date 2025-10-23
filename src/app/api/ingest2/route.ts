@@ -2,7 +2,7 @@
 import { NextResponse } from "next/server";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
-// ===== Next.js route config
+// ===== Next route config
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -36,79 +36,64 @@ function splitIntoChunks(text: string, maxWords = 180, overlap = 40): string[] {
   return chunks;
 }
 
-// ===== Embedding via OpenRouter
+// ===== Embedding via OpenRouter (robust JSON parsing)
 async function embedWithOpenRouter(texts: string[]): Promise<number[][]> {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) throw new Error("OPENROUTER_API_KEY belum terpasang.");
 
   const referer = process.env.APP_URL ?? "https://covaposh-catalog.vercel.app";
 
-  // Gunakan endpoint yang benar dan stabil
-  const apiURL = "https://api.openrouter.ai/v1/embeddings";
-
-  const payload = {
-    model: "nomic-ai/nomic-embed-text-v1.5",
-    input: texts,
-  };
-
-  const res = await fetch(apiURL, {
+  const res = await fetch("https://openrouter.ai/api/v1/embeddings", {
     method: "POST",
-    redirect: "follow",
     headers: {
-      "Authorization": `Bearer ${apiKey}`,
+      Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
-      "HTTP-Referer": referer, // OpenRouter memerlukan ini
+      // send both — some setups require 'Referer'
+      "HTTP-Referer": referer,
+      Referer: referer,
       "X-Title": "COVAPOSH Catalog",
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      model: "nomic-ai/nomic-embed-text-v1.5",
+      input: texts,
+    }),
   });
 
-  // Logging untuk debugging
-  const contentType = res.headers.get("content-type") ?? "(unknown)";
-  const textBody = await res.text();
-  console.log("[DEBUG][OpenRouter]", res.status, res.url, contentType);
-
-  // Cek apakah JSON valid
+  const asText = await res.text();
+  // guard: OpenRouter should return JSON; if not, throw descriptive error
   let parsed: OpenRouterEmbeddingResponse | null = null;
   try {
-    parsed = JSON.parse(textBody);
+    parsed = JSON.parse(asText);
   } catch {
+    const ctype = res.headers.get("content-type") || "(unknown content-type)";
     throw new Error(
-      `OpenRouter returned non-JSON (status ${res.status}, ${contentType}): ${textBody.slice(
+      `OpenRouter returned non-JSON (status ${res.status}, ${ctype}): ${asText.slice(
         0,
         400,
       )}`,
     );
   }
 
-  // Cek error status
   if (!res.ok) {
     throw new Error(
       `OpenRouter ${res.status}: ${JSON.stringify(parsed).slice(0, 400)}`,
     );
   }
-
-  // Validasi isi response
   if (!parsed?.data?.length) {
     throw new Error(`Response OpenRouter kosong: ${JSON.stringify(parsed)}`);
   }
-
   return parsed.data.map((d) => d.embedding);
 }
 
 // ===== Handler utama (POST)
 export async function POST(req: Request) {
   const step: Record<string, string> = {};
-
   try {
     step.stage = "read-body";
     const { source, text } = await req.json();
 
     if (!text || !String(text).trim()) {
-      return NextResponse.json(
-        { ok: false, error: "Teks kosong." },
-        { status: 400 },
-      );
+      return NextResponse.json({ ok: false, error: "Teks kosong." }, { status: 400 });
     }
 
     const dataset =
@@ -124,7 +109,6 @@ export async function POST(req: Request) {
     };
     console.log("[INGEST2] envSeen:", envSeen);
 
-    // ===== Step: Chunking
     step.stage = "chunk";
     const chunks = splitIntoChunks(String(text));
     if (chunks.length === 0) {
@@ -134,14 +118,12 @@ export async function POST(req: Request) {
       );
     }
 
-    // ===== Step: Embedding
     step.stage = "embed";
     const embeddings = await embedWithOpenRouter(chunks);
     if (embeddings.length !== chunks.length) {
       throw new Error("Panjang embeddings tidak sama dengan chunks.");
     }
 
-    // ===== Step: Insert ke Supabase
     step.stage = "insert";
     const rows = chunks.map((chunk, i) => ({
       source: dataset,
@@ -158,14 +140,11 @@ export async function POST(req: Request) {
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("[INGEST2][ERROR]", step, message);
-    return NextResponse.json(
-      { ok: false, where: step, error: message },
-      { status: 500 },
-    );
+    return NextResponse.json({ ok: false, where: step, error: message }, { status: 500 });
   }
 }
 
-// ===== GET handler
+// GET → info
 export async function GET() {
   return NextResponse.json({ ok: false, error: "Use POST" }, { status: 405 });
 }
