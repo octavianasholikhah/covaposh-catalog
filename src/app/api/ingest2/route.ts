@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 // ===== Types
-type OpenRouterEmbeddingResponse = {
+type OpenAIEmbeddingResponse = {
   data: { embedding: number[] }[];
 };
 
@@ -36,53 +36,31 @@ function splitIntoChunks(text: string, maxWords = 180, overlap = 40): string[] {
   return chunks;
 }
 
-// ===== Embedding via OpenRouter (robust JSON parsing)
-async function embedWithOpenRouter(texts: string[]): Promise<number[][]> {
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey) throw new Error("OPENROUTER_API_KEY belum terpasang.");
+// ===== Embedding via OpenAI (stabil & sangat murah)
+async function embedWithOpenAI(texts: string[]): Promise<number[][]> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) throw new Error("OPENAI_API_KEY belum terpasang.");
 
-  const referer = process.env.APP_URL ?? "https://covaposh-catalog.vercel.app";
-
-  const res = await fetch("https://openrouter.ai/api/v1/embeddings", {
+  const res = await fetch("https://api.openai.com/v1/embeddings", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${apiKey}`,
+      "Authorization": `Bearer ${apiKey}`,
       "Content-Type": "application/json",
-      // send both — some setups require 'Referer'
-      "HTTP-Referer": referer,
-      Referer: referer,
-      "X-Title": "COVAPOSH Catalog",
     },
     body: JSON.stringify({
-      model: "nomic-ai/nomic-embed-text-v1.5",
+      model: "text-embedding-3-small", // dimensi 1536
       input: texts,
     }),
   });
 
-  const asText = await res.text();
-  // guard: OpenRouter should return JSON; if not, throw descriptive error
-  let parsed: OpenRouterEmbeddingResponse | null = null;
-  try {
-    parsed = JSON.parse(asText);
-  } catch {
-    const ctype = res.headers.get("content-type") || "(unknown content-type)";
-    throw new Error(
-      `OpenRouter returned non-JSON (status ${res.status}, ${ctype}): ${asText.slice(
-        0,
-        400,
-      )}`,
-    );
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`OpenAI error ${res.status}: ${err.slice(0, 400)}`);
   }
 
-  if (!res.ok) {
-    throw new Error(
-      `OpenRouter ${res.status}: ${JSON.stringify(parsed).slice(0, 400)}`,
-    );
-  }
-  if (!parsed?.data?.length) {
-    throw new Error(`Response OpenRouter kosong: ${JSON.stringify(parsed)}`);
-  }
-  return parsed.data.map((d) => d.embedding);
+  const data = (await res.json()) as OpenAIEmbeddingResponse;
+  if (!data?.data?.length) throw new Error("Response OpenAI kosong.");
+  return data.data.map(d => d.embedding);
 }
 
 // ===== Handler utama (POST)
@@ -103,7 +81,6 @@ export async function POST(req: Request) {
     // Debug env (boolean saja)
     const envSeen = {
       OPENAI_API_KEY: Boolean(process.env.OPENAI_API_KEY),
-      OPENROUTER_API_KEY: Boolean(process.env.OPENROUTER_API_KEY),
       SUPABASE_URL: Boolean(process.env.SUPABASE_URL),
       SUPABASE_SERVICE_ROLE_KEY: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
     };
@@ -119,7 +96,7 @@ export async function POST(req: Request) {
     }
 
     step.stage = "embed";
-    const embeddings = await embedWithOpenRouter(chunks);
+    const embeddings = await embedWithOpenAI(chunks);
     if (embeddings.length !== chunks.length) {
       throw new Error("Panjang embeddings tidak sama dengan chunks.");
     }
@@ -128,7 +105,7 @@ export async function POST(req: Request) {
     const rows = chunks.map((chunk, i) => ({
       source: dataset,
       chunk,
-      embedding: embeddings[i],
+      embedding: embeddings[i], // kolom Supabase harus vector(1536)
     }));
 
     const { error } = await supabase().from("faq_chunks").insert(rows);
