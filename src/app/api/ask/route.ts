@@ -25,35 +25,34 @@ function getSupabase() {
 type MatchRow = { source: string; chunk: string; score: number };
 
 const SYSTEM_PROMPT =
-  "Kamu adalah asisten toko buket COVAPOSH. " +
-  "Jawab SINGKAT, jelas, dan sopan. " +
-  "KAMU HANYA BOLEH menggunakan informasi dari KONTEN yang diberikan. " +
-  "Jika tidak ada info relevan di KONTEN, katakan belum punya informasinya dan sarankan hubungi WhatsApp.";
+  "Kamu adalah asisten toko buket COVAPOSH. Jawab SINGKAT, jelas, dan sopan. " +
+  "KAMU HANYA BOLEH memakai informasi dari KONTEN yang diberikan. " +
+  "Jika tidak ada info relevan di KONTEN, katakan belum punya dan arahkan ke WhatsApp.";
 
-function buildUserPrompt(question: string, contexts: MatchRow[]) {
-  const ctx =
-    contexts.length === 0
+function buildUserPrompt(q: string, ctx: MatchRow[]) {
+  const contextText =
+    ctx.length === 0
       ? "(tidak ada konteks yang cocok)"
-      : contexts.map((c, i) => `#${i + 1} [${c.source}] ${c.chunk}`).join("\n");
-
+      : ctx.map((c, i) => `#${i + 1} [${c.source}] ${c.chunk}`).join("\n");
   return [
     "KONTEN (gunakan hanya ini untuk menjawab):",
-    ctx,
+    contextText,
     "",
     "TUGAS:",
     "- Jawab pertanyaan memakai KONTEN di atas.",
-    "- Jika tidak ada jawaban relevan di KONTEN, katakan belum punya infonya.",
+    "- Jika tidak ada jawaban relevan di KONTEN, katakan belum punya informasinya.",
     "- Jika ada alamat/jam/produk/harga, sebutkan ringkas.",
     "",
-    `PERTANYAAN: ${question}`,
+    `PERTANYAAN: ${q}`,
   ].join("\n");
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const { question, topK = 8 } = (await req.json()) as {
+    const { question, topK = 5, threshold = 0.2 } = (await req.json()) as {
       question: string;
-      topK?: number; // 1..10
+      topK?: number;
+      threshold?: number;
     };
 
     if (!question?.trim()) {
@@ -64,29 +63,47 @@ export async function POST(req: NextRequest) {
     const supabase = getSupabase();
 
     // 1) Embedding pertanyaan
-    const emb = await openai.embeddings.create({
-      model: "text-embedding-3-small",
+    const embRes = await openai.embeddings.create({
+      model: "text-embedding-3-small", // 1536 dim
       input: question,
     });
-    const queryEmbedding: number[] = emb.data[0].embedding;
+    const queryEmbedding = embRes.data[0].embedding as number[];
 
-    // 2) Ambil Top-K dari Supabase (tanpa filter threshold)
+    // 2) Cari konteks via RPC (pastikan fungsi di DB menerima 3 arg: embedding, match_count, threshold)
     const { data, error } = await supabase.rpc("match_faq_chunks", {
       query_embedding: queryEmbedding,
       match_count: Math.min(Math.max(topK, 1), 10),
+      similarity_threshold: Math.min(Math.max(threshold, 0), 0.99),
     });
-    if (error) {
-      return NextResponse.json(
-        { ok: false, stage: "match_faq_chunks", error: error.message ?? String(error) },
-        { status: 500 }
-      );
+
+    let matches: MatchRow[] = (data ?? []) as MatchRow[];
+
+    // 2b) Fallback kalau hasil vektor kosong → keyword search sederhana
+    if (!matches.length) {
+      const kw = question
+        .toLowerCase()
+        .replace(/[^\p{L}\p{N}\s]/gu, " ")
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 3); // ambil 3 kata pertama
+
+      if (kw.length) {
+        const { data: kwData } = await supabase
+          .from("faq_chunks")
+          .select("source, chunk")
+          .or(kw.map((k) => `chunk.ilike.%${k}%`).join(","))
+          .limit(topK);
+
+        matches =
+          (kwData ?? []).map((r) => ({
+            source: (r as any).source,
+            chunk: (r as any).chunk,
+            score: 0.0,
+          })) ?? [];
+      }
     }
 
-    const matches: MatchRow[] = (data ?? []) as MatchRow[];
-
-    // Guard: jika skor tertinggi sangat rendah, anggap tidak relevan
-    const bestScore = matches[0]?.score ?? 0;
-    if (!matches.length || bestScore < 0.05) {
+    if (!matches.length) {
       return NextResponse.json({
         ok: true,
         answer:
@@ -95,9 +112,8 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 3) Rangkai jawaban pakai konteks
     const userPrompt = buildUserPrompt(question, matches);
-    const chat = await openai.chat.completions.create({
+    const chatRes = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       temperature: 0.2,
       messages: [
@@ -107,7 +123,7 @@ export async function POST(req: NextRequest) {
     });
 
     const answer =
-      chat.choices?.[0]?.message?.content?.trim() ||
+      chatRes.choices?.[0]?.message?.content?.trim() ||
       "Maaf, aku belum menemukan informasi yang relevan di basis data. Silakan chat kami via WhatsApp ya 😊";
 
     return NextResponse.json({
