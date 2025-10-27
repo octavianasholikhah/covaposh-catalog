@@ -1,6 +1,6 @@
 // src/app/api/ingest2/route.ts
 import { NextResponse } from "next/server";
-import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient, type PostgrestError } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -51,7 +51,6 @@ async function embedWithOpenAI(texts: string[]): Promise<number[][]> {
 
   const raw = await res.text();
   if (!res.ok) {
-    // lempar isi mentah supaya kebaca di client
     throw new Error(`OpenAI ${res.status}: ${raw.slice(0, 800)}`);
   }
 
@@ -85,7 +84,7 @@ export async function POST(req: Request) {
       OPENAI_API_KEY: Boolean(process.env.OPENAI_API_KEY),
       SUPABASE_URL: Boolean(process.env.SUPABASE_URL),
       SUPABASE_SERVICE_ROLE_KEY: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
-      VERSION: "ingest2-verbose-v3",
+      VERSION: "ingest2-verbose-v4",
     };
 
     step.stage = "chunk";
@@ -113,9 +112,10 @@ export async function POST(req: Request) {
     const { error } = await supabase().from("faq_chunks").insert(rows);
 
     if (error) {
-      // *** KUNCI: stringify error supaya tidak [object Object]
+      // format error supaya tidak [object Object]
+      const e: PostgrestError = error;
       const msg = JSON.stringify(
-        { message: error.message, code: error.code, details: (error as any).details },
+        { message: e.message, code: e.code, details: e.details },
         null,
         2,
       );
@@ -125,7 +125,6 @@ export async function POST(req: Request) {
     step.stage = "done";
     return NextResponse.json({ ok: true, inserted: rows.length, envSeen });
   } catch (err: unknown) {
-    // pastikan selalu string
     const message =
       err instanceof Error
         ? err.message
@@ -133,7 +132,6 @@ export async function POST(req: Request) {
         ? JSON.stringify(err)
         : String(err);
 
-    // log ke Vercel Function Logs
     console.error("[INGEST2][ERROR]", step, message);
 
     return NextResponse.json(
@@ -146,6 +144,6 @@ export async function POST(req: Request) {
 // ----- GET
 export async function GET() {
   return NextResponse.json(
-    { ok: true, hint: "POST /api/ingest2", version: "ingest2-verbose-v3" },
+    { ok: true, hint: "POST /api/ingest2", version: "ingest2-verbose-v4" },
   );
 }
