@@ -36,7 +36,7 @@ function splitIntoChunks(text: string, maxWords = 180, overlap = 40): string[] {
   return chunks;
 }
 
-// ===== Embedding via OpenAI (stabil & sangat murah)
+// ===== Embedding via OpenAI (stabil & murah)
 async function embedWithOpenAI(texts: string[]): Promise<number[][]> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error("OPENAI_API_KEY belum terpasang.");
@@ -44,7 +44,7 @@ async function embedWithOpenAI(texts: string[]): Promise<number[][]> {
   const res = await fetch("https://api.openai.com/v1/embeddings", {
     method: "POST",
     headers: {
-      "Authorization": `Bearer ${apiKey}`,
+      Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
@@ -54,13 +54,13 @@ async function embedWithOpenAI(texts: string[]): Promise<number[][]> {
   });
 
   if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`OpenAI error ${res.status}: ${err.slice(0, 400)}`);
+    const errText = await res.text();
+    throw new Error(`OpenAI error ${res.status}: ${errText.slice(0, 500)}`);
   }
 
   const data = (await res.json()) as OpenAIEmbeddingResponse;
   if (!data?.data?.length) throw new Error("Response OpenAI kosong.");
-  return data.data.map(d => d.embedding);
+  return data.data.map((d) => d.embedding);
 }
 
 // ===== Handler utama (POST)
@@ -71,7 +71,10 @@ export async function POST(req: Request) {
     const { source, text } = await req.json();
 
     if (!text || !String(text).trim()) {
-      return NextResponse.json({ ok: false, error: "Teks kosong." }, { status: 400 });
+      return NextResponse.json(
+        { ok: false, error: "Teks kosong." },
+        { status: 400 }
+      );
     }
 
     const dataset =
@@ -91,7 +94,7 @@ export async function POST(req: Request) {
     if (chunks.length === 0) {
       return NextResponse.json(
         { ok: false, error: "Tidak ada potongan teks yang valid." },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -105,19 +108,42 @@ export async function POST(req: Request) {
     const rows = chunks.map((chunk, i) => ({
       source: dataset,
       chunk,
-      embedding: embeddings[i], // kolom Supabase harus vector(1536)
+      // NOTE: pastikan kolom 'embedding' di Supabase bertipe: vector(1536)
+      embedding: embeddings[i],
     }));
 
-    const { error } = await supabase().from("faq_chunks").insert(rows);
-    if (error) throw error;
+    const { data, error } = await supabase()
+      .from("faq_chunks")
+      .insert(rows)
+      .select();
+
+    if (error) {
+      console.error("[INGEST2][INSERT][ERROR RAW]", error);
+      const msg =
+        (error as any).message ??
+        JSON.stringify({
+          code: (error as any).code,
+          details: (error as any).details,
+          hint: (error as any).hint,
+        });
+      throw new Error(msg);
+    }
 
     step.stage = "done";
     console.log("[INGEST2] success insert:", rows.length);
     return NextResponse.json({ ok: true, inserted: rows.length, envSeen });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
+    const message =
+      err instanceof Error
+        ? err.message
+        : typeof err === "object"
+        ? JSON.stringify(err)
+        : String(err);
     console.error("[INGEST2][ERROR]", step, message);
-    return NextResponse.json({ ok: false, where: step, error: message }, { status: 500 });
+    return NextResponse.json(
+      { ok: false, where: step, error: message },
+      { status: 500 }
+    );
   }
 }
 
