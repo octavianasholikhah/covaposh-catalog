@@ -22,10 +22,7 @@ function getSupabase() {
   return createClient(url, key);
 }
 
-// Bentuk baris hasil RPC/keyword
 type MatchRow = { source: string; chunk: string; score: number };
-
-// Bentuk baris tabel faq_chunks (untuk fallback keyword)
 type FaqChunkRow = { source: string; chunk: string };
 
 const SYSTEM_PROMPT =
@@ -73,19 +70,15 @@ export async function POST(req: NextRequest) {
     });
     const queryEmbedding: number[] = embRes.data[0].embedding;
 
-    // 2) Cari konteks via RPC (pastikan fungsi menerima 3 argumen sesuai schema)
-    const {
-      data: rpcData,
-      error: rpcError,
-    } = await supabase.rpc("match_faq_chunks", {
+    // 2) Pencarian vektor via RPC
+    const rpcRes = await supabase.rpc("match_faq_chunks", {
       query_embedding: queryEmbedding,
       match_count: Math.min(Math.max(topK, 1), 10),
       similarity_threshold: Math.min(Math.max(threshold, 0), 0.99),
     });
+    let matches: MatchRow[] = (rpcRes.data ?? []) as MatchRow[];
 
-    let matches: MatchRow[] = (rpcData ?? []) as MatchRow[];
-
-    // 2b) Fallback jika hasil vektor kosong → keyword search sederhana
+    // 2b) Fallback keyword jika hasil vektor kosong
     if (!matches.length) {
       const kw = question
         .toLowerCase()
@@ -96,18 +89,17 @@ export async function POST(req: NextRequest) {
 
       if (kw.length) {
         const { data: kwData } = await supabase
-          .from<FaqChunkRow>("faq_chunks")
+          .from("faq_chunks")
           .select("source, chunk")
           .or(kw.map((k) => `chunk.ilike.%${k}%`).join(","))
           .limit(topK);
 
-        if (kwData?.length) {
-          matches = kwData.map((r) => ({
-            source: r.source,
-            chunk: r.chunk,
-            score: 0.0,
-          }));
-        }
+        const kwRows: MatchRow[] = (kwData ?? []).map((r) => {
+          const row = r as unknown as FaqChunkRow;
+          return { source: row.source, chunk: row.chunk, score: 0 };
+        });
+
+        if (kwRows.length) matches = kwRows;
       }
     }
 
@@ -120,6 +112,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // 3) Rangkai jawaban
     const userPrompt = buildUserPrompt(question, matches);
     const chatRes = await openai.chat.completions.create({
       model: "gpt-4o-mini",
