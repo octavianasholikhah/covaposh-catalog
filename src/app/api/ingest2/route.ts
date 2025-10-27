@@ -2,17 +2,13 @@
 import { NextResponse } from "next/server";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
-// ===== Next route config
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-// ===== Types
-type OpenAIEmbeddingResponse = {
-  data: { embedding: number[] }[];
-};
+type OpenAIEmbeddingResponse = { data: { embedding: number[] }[] };
 
-// ===== Supabase (lazy init)
+// ----- Supabase (lazy)
 let _sb: SupabaseClient | null = null;
 function supabase(): SupabaseClient {
   if (_sb) return _sb;
@@ -25,7 +21,7 @@ function supabase(): SupabaseClient {
   return _sb;
 }
 
-// ===== Text chunker
+// ----- Chunker
 function splitIntoChunks(text: string, maxWords = 180, overlap = 40): string[] {
   const words = text.split(/\s+/).filter(Boolean);
   const chunks: string[] = [];
@@ -36,7 +32,7 @@ function splitIntoChunks(text: string, maxWords = 180, overlap = 40): string[] {
   return chunks;
 }
 
-// ===== Embedding via OpenAI (stabil & murah)
+// ----- OpenAI embeddings
 async function embedWithOpenAI(texts: string[]): Promise<number[][]> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error("OPENAI_API_KEY belum terpasang.");
@@ -48,22 +44,29 @@ async function embedWithOpenAI(texts: string[]): Promise<number[][]> {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "text-embedding-3-small", // dimensi 1536
+      model: "text-embedding-3-small", // 1536 dims
       input: texts,
     }),
   });
 
+  const raw = await res.text();
   if (!res.ok) {
-    const errText = await res.text();
-    throw new Error(`OpenAI error ${res.status}: ${errText.slice(0, 500)}`);
+    // lempar isi mentah supaya kebaca di client
+    throw new Error(`OpenAI ${res.status}: ${raw.slice(0, 800)}`);
   }
 
-  const data = (await res.json()) as OpenAIEmbeddingResponse;
-  if (!data?.data?.length) throw new Error("Response OpenAI kosong.");
-  return data.data.map((d) => d.embedding);
+  let parsed: OpenAIEmbeddingResponse;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new Error(`OpenAI non-JSON: ${raw.slice(0, 800)}`);
+  }
+
+  if (!parsed?.data?.length) throw new Error("Response OpenAI kosong.");
+  return parsed.data.map(d => d.embedding);
 }
 
-// ===== Handler utama (POST)
+// ----- Handler POST
 export async function POST(req: Request) {
   const step: Record<string, string> = {};
   try {
@@ -71,30 +74,26 @@ export async function POST(req: Request) {
     const { source, text } = await req.json();
 
     if (!text || !String(text).trim()) {
-      return NextResponse.json(
-        { ok: false, error: "Teks kosong." },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: "Teks kosong." }, { status: 400 });
     }
 
     const dataset =
       (source && String(source).trim()) ||
       "faq-" + new Date().toISOString().slice(0, 10);
 
-    // Debug env (boolean saja)
     const envSeen = {
       OPENAI_API_KEY: Boolean(process.env.OPENAI_API_KEY),
       SUPABASE_URL: Boolean(process.env.SUPABASE_URL),
       SUPABASE_SERVICE_ROLE_KEY: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
+      VERSION: "ingest2-verbose-v3",
     };
-    console.log("[INGEST2] envSeen:", envSeen);
 
     step.stage = "chunk";
     const chunks = splitIntoChunks(String(text));
     if (chunks.length === 0) {
       return NextResponse.json(
         { ok: false, error: "Tidak ada potongan teks yang valid." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -108,46 +107,45 @@ export async function POST(req: Request) {
     const rows = chunks.map((chunk, i) => ({
       source: dataset,
       chunk,
-      // NOTE: pastikan kolom 'embedding' di Supabase bertipe: vector(1536)
-      embedding: embeddings[i],
+      embedding: embeddings[i], // kolom harus vector(1536)
     }));
 
-    const { data, error } = await supabase()
-      .from("faq_chunks")
-      .insert(rows)
-      .select();
+    const { error } = await supabase().from("faq_chunks").insert(rows);
 
     if (error) {
-      console.error("[INGEST2][INSERT][ERROR RAW]", error);
-      const msg =
-        (error as any).message ??
-        JSON.stringify({
-          code: (error as any).code,
-          details: (error as any).details,
-          hint: (error as any).hint,
-        });
-      throw new Error(msg);
+      // *** KUNCI: stringify error supaya tidak [object Object]
+      const msg = JSON.stringify(
+        { message: error.message, code: error.code, details: (error as any).details },
+        null,
+        2,
+      );
+      throw new Error(`Supabase insert error: ${msg}`);
     }
 
     step.stage = "done";
-    console.log("[INGEST2] success insert:", rows.length);
     return NextResponse.json({ ok: true, inserted: rows.length, envSeen });
   } catch (err: unknown) {
+    // pastikan selalu string
     const message =
       err instanceof Error
         ? err.message
         : typeof err === "object"
         ? JSON.stringify(err)
         : String(err);
+
+    // log ke Vercel Function Logs
     console.error("[INGEST2][ERROR]", step, message);
+
     return NextResponse.json(
       { ok: false, where: step, error: message },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
-// GET → info
+// ----- GET
 export async function GET() {
-  return NextResponse.json({ ok: false, error: "Use POST" }, { status: 405 });
+  return NextResponse.json(
+    { ok: true, hint: "POST /api/ingest2", version: "ingest2-verbose-v3" },
+  );
 }
