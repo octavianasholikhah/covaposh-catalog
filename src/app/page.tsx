@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Search, ShoppingCart, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, ShoppingCart, Filter, ChevronLeft, ChevronRight, Bot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -49,7 +49,6 @@ const sorters: Record<Sort, (a: Product, b: Product) => number> = {
 };
 
 export default function Page() {
-  // Penting: default 'SEMUA' (bukan 'Semua')
   const [search, setSearch] = useState('');
   const [cat, setCat] = useState<Category>('SEMUA');
   const [maxPrice, setMaxPrice] = useState(PRICE_MAX);
@@ -62,7 +61,6 @@ export default function Page() {
     return PRODUCTS.filter(p => byCat(p) && byText(p) && byPrice(p)).sort(sorters[sort]);
   }, [search, cat, maxPrice, sort]);
 
-  // Tambahkan 'BUKET SNACK' di sections
   const sections = useMemo(() => {
     const s: Record<RealCategory, Product[]> = {
       'BUKET READY': [],
@@ -98,7 +96,6 @@ export default function Page() {
             <CarouselRow products={filtered} onOrder={openWA} />
           </>
         ) : (
-          // Tambahkan 'BUKET SNACK' juga di beranda
           (['BUKET READY', 'BUNGA ARTIFICIAL', 'PRICELIST VIA CHAT', 'BUKET SNACK'] as const).map((sec) => (
             <div key={sec} className="mb-10">
               <div className="flex items-baseline justify-between mb-3">
@@ -119,6 +116,18 @@ export default function Page() {
         © {new Date().getFullYear()} <span className="font-semibold text-pink-600">COVAPOSH</span>. All rights reserved.
       </footer>
 
+      {/* Floating Chatbot */}
+      <Link
+        href="/chat"
+        aria-label="Buka Chatbot COVAPOSH"
+        className="fixed bottom-5 right-28 z-50 rounded-full shadow-xl px-5 py-3 bg-black text-white font-semibold hover:bg-gray-900"
+      >
+        <span className="inline-flex items-center gap-2">
+          <Bot size={18} /> Chatbot
+        </span>
+      </Link>
+
+      {/* Floating WhatsApp */}
       <button
         onClick={() =>
           window.open(
@@ -142,15 +151,25 @@ function Header({ search, setSearch }: { search: string; setSearch: (v: string) 
     <header className="sticky top-0 bg-white/80 backdrop-blur border-b border-pink-100 z-10">
       <div className={`${CONTAINER} flex flex-wrap gap-3 justify-between items-center py-4`}>
         <h1 className="text-2xl font-bold text-pink-600">COVAPOSH</h1>
+
         <div className="flex-1 max-w-2xl flex items-center gap-2">
           <Search className="text-gray-500" />
           <Input placeholder="Cari produk…" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
-        <Button variant="outline" asChild>
-          <Link href="/pesanan" aria-label="Lihat pesanan" className="flex items-center gap-2">
-            <ShoppingCart size={18} /> Pesanan
-          </Link>
-        </Button>
+
+        <div className="flex items-center gap-2">
+          <Button variant="outline" asChild>
+            <Link href="/pesanan" aria-label="Lihat pesanan" className="flex items-center gap-2">
+              <ShoppingCart size={18} /> Pesanan
+            </Link>
+          </Button>
+
+          <Button asChild>
+            <Link href="/chat" aria-label="Masuk ke Chatbot" className="flex items-center gap-2">
+              <Bot size={18} /> Chatbot
+            </Link>
+          </Button>
+        </div>
       </div>
     </header>
   );
@@ -291,21 +310,4 @@ function About() {
           <div className="mt-4 flex flex-wrap gap-2">
             <Button onClick={() => window.open(`https://wa.me/${WA_NUMBER}`, '_blank', 'noopener,noreferrer')}>Chat WhatsApp</Button>
             <Button variant="outline" onClick={() => window.open(MAP_URL, '_blank', 'noopener,noreferrer')}>Lihat di Maps</Button>
-            <Button variant="outline" onClick={() => window.open(IG_URL, '_blank', 'noopener,noreferrer')}>Instagram</Button>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm border border-pink-100 overflow-hidden">
-          <iframe
-            title="Lokasi COVAPOSH di Google Maps"
-            src={MAP_EMBED_URL}
-            className="w-full h-[340px] md:h-[420px] border-0"
-            loading="lazy"
-            allowFullScreen
-            referrerPolicy="no-referrer-when-downgrade"
-          />
-        </div>
-      </div>
-    </section>
-  );
-}
+            <Button variant="outline" onClick={() => window.open
