@@ -27,7 +27,8 @@ const MAP_URL = 'https://maps.app.goo.gl/DhhRScPU9Sxp3rMd9?g_st=ic';
 const IG_URL = 'https://instagram.com/covaposh';
 const ADDRESS = 'Jl. Cemara No 13B, Gejayan, Condongcatur, Depok, Sleman';
 const HOURS = '09:00–17:00';
-const MAP_EMBED_URL = 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3953.3562729798973!2d110.39351707588605!3d-7.751984476865922!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e7a59098b7d313b%3A0xdbf7906887ffe497!2sJl.%20Cemara%20No.13%2C%20Ngabean%20Wetan%2C%20Sinduharjo%2C%20Kec.%20Ngaglik%2C%20Kabupaten%20Sleman%2C%20Daerah%20Istimewa%20Yogyakarta%2055281!5e0!3m2!1sen!2sid!4v1760527829148!5m2!1sen!2sid';
+const MAP_EMBED_URL =
+  'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3953.3562729798973!2d110.39351707588605!3d-7.751984476865922!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e7a59098b7d313b%3A0xdbf7906887ffe497!2sJl.%20Cemara%20No.13%2C%20Ngabean%20Wetan%2C%20Sinduharjo%2C%20Kec.%20Ngaglik%2C%20Kabupaten%20Sleman%2C%20Daerah%20Istimewa%20Yogyakarta%2055281!5e0!3m2!1sen!2sid!4v1760527829148!5m2!1sen!2sid';
 
 type Sort = 'termurah' | 'termahal' | 'az';
 
@@ -49,6 +50,7 @@ const sorters: Record<Sort, (a: Product, b: Product) => number> = {
 };
 
 export default function Page() {
+  // default 'SEMUA'
   const [search, setSearch] = useState('');
   const [cat, setCat] = useState<Category>('SEMUA');
   const [maxPrice, setMaxPrice] = useState(PRICE_MAX);
@@ -56,11 +58,12 @@ export default function Page() {
 
   const filtered = useMemo(() => {
     const byText = (p: Product) => p.name.toLowerCase().includes(search.toLowerCase());
-    const byCat  = (p: Product) => cat === 'SEMUA' || p.category === cat;
+    const byCat = (p: Product) => cat === 'SEMUA' || p.category === cat;
     const byPrice = (p: Product) => p.price == null || p.price <= maxPrice;
     return PRODUCTS.filter(p => byCat(p) && byText(p) && byPrice(p)).sort(sorters[sort]);
   }, [search, cat, maxPrice, sort]);
 
+  // sections (termasuk BUKET SNACK)
   const sections = useMemo(() => {
     const s: Record<RealCategory, Product[]> = {
       'BUKET READY': [],
@@ -238,29 +241,70 @@ function CarouselRow({ products, onOrder }: { products: Product[]; onOrder: (p: 
   return (
     <div className="relative">
       <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-1">
-        <Button type="button" variant="secondary" size="icon" className="pointer-events-auto rounded-xl shadow bg-white/90 hover:bg-white" onClick={() => jump('left')} aria-label="Geser kiri">
+        <Button
+          type="button"
+          variant="secondary"
+          size="icon"
+          className="pointer-events-auto rounded-xl shadow bg-white/90 hover:bg-white"
+          onClick={() => jump('left')}
+          aria-label="Geser kiri"
+        >
           <ChevronLeft />
         </Button>
       </div>
+
       <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-1">
-        <Button type="button" variant="secondary" size="icon" className="pointer-events-auto rounded-xl shadow bg-white/90 hover:bg-white" onClick={() => jump('right')} aria-label="Geser kanan">
+        <Button
+          type="button"
+          variant="secondary"
+          size="icon"
+          className="pointer-events-auto rounded-xl shadow bg-white/90 hover:bg-white"
+          onClick={() => jump('right')}
+          aria-label="Geser kanan"
+        >
           <ChevronRight />
         </Button>
       </div>
 
       <div ref={ref} className="flex overflow-x-auto gap-4 pb-4 pr-6 scroll-smooth snap-x snap-mandatory" aria-label="Daftar produk">
         {products.map((p) => (
-          <motion.div key={p.id} data-card whileHover={{ scale: 1.02 }} transition={{ duration: 0.18 }} className="min-w-[220px] sm:min-w-[240px] md:min-w-[260px] snap-start flex-shrink-0 h-full">
+          <motion.div
+            key={p.id}
+            data-card
+            whileHover={{ scale: 1.02 }}
+            transition={{ duration: 0.18 }}
+            className="min-w-[220px] sm:min-w-[240px] md:min-w-[260px] snap-start flex-shrink-0 h-full"
+          >
             <Card className="h-full flex flex-col overflow-hidden shadow-sm hover:shadow-md">
               <div className="relative bg-pink-100 aspect-[4/5]">
-                <Image src={p.image} alt={`Foto ${p.name}`} title={p.name} fill sizes="(max-width: 640px) 80vw, (max-width: 1024px) 40vw, 25vw" className="object-cover" />
+                <Image
+                  src={p.image}
+                  alt={`Foto ${p.name}`}
+                  title={p.name}
+                  fill
+                  sizes="(max-width: 640px) 80vw, (max-width: 1024px) 40vw, 25vw"
+                  className="object-cover"
+                />
               </div>
               <CardContent className="p-3 flex flex-col grow">
-                <h4 className="font-semibold text-base text-gray-800 line-clamp-2 min-h-[48px] leading-6">{p.name}</h4>
-                <p className={`font-medium mt-1 text-sm ${p.price == null ? 'text-amber-600' : 'text-pink-600'}`}>{priceLabel(p)}</p>
+                <h4 className="font-semibold text-base text-gray-800 line-clamp-2 min-h-[48px] leading-6">
+                  {p.name}
+                </h4>
+                <p className={`font-medium mt-1 text-sm ${p.price == null ? 'text-amber-600' : 'text-pink-600'}`}>
+                  {priceLabel(p)}
+                </p>
                 <div className="mt-auto flex justify-between items-center pt-2">
-                  <Badge variant="secondary" className="text-[10px] h-6 flex items-center">{p.category}</Badge>
-                  <Button size="sm" className="h-9 px-3" onClick={() => onOrder(p)} aria-label={`Pesan ${p.name}`}>Pesan</Button>
+                  <Badge variant="secondary" className="text-[10px] h-6 flex items-center">
+                    {p.category}
+                  </Badge>
+                  <Button
+                    size="sm"
+                    className="h-9 px-3"
+                    onClick={() => onOrder(p)}
+                    aria-label={`Pesan ${p.name}`}
+                  >
+                    Pesan
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -283,7 +327,9 @@ function MovingTagline() {
             transition={{ repeat: Infinity, duration: 20, ease: 'linear' }}
           >
             <span className="text-xs sm:text-sm font-medium">{text}</span>
-            <span className="text-xs sm:text-sm font-medium" aria-hidden>{text}</span>
+            <span className="text-xs sm:text-sm font-medium" aria-hidden>
+              {text}
+            </span>
           </motion.div>
         </div>
       </div>
@@ -295,19 +341,62 @@ function About() {
   return (
     <section className={`${CONTAINER} pb-10`}>
       <div className="grid md:grid-cols-2 gap-6 items-start">
+        {/* Kiri: deskripsi */}
         <div className="bg-white rounded-xl shadow-sm border border-pink-100 p-5">
           <h3 className="text-lg font-semibold mb-2">Tentang COVAPOSH</h3>
           <div className="space-y-1 text-gray-700">
-            <p>{TAGLINE_LINES[0]}</p><p>{TAGLINE_LINES[1]}</p><p>{TAGLINE_LINES[2]}</p>
+            <p>{TAGLINE_LINES[0]}</p>
+            <p>{TAGLINE_LINES[1]}</p>
+            <p>{TAGLINE_LINES[2]}</p>
           </div>
           <p className="mt-3 italic text-pink-600 font-semibold">— {SLOGAN}</p>
+
           <div className="mt-4 space-y-1 text-sm">
             <div><span className="font-medium">Alamat:</span> {ADDRESS}</div>
             <div><span className="font-medium">Jam buka:</span> {HOURS}</div>
-            <div><span className="font-medium">Instagram:</span> <a href={IG_URL} target="_blank" rel="noreferrer" className="text-pink-600 hover:underline">@covaposh</a></div>
-            <div><span className="font-medium">WhatsApp:</span> <a href={`https://wa.me/${WA_NUMBER}`} target="_blank" rel="noreferrer" className="text-pink-600 hover:underline">+62 857-1626-1499</a></div>
+            <div>
+              <span className="font-medium">Instagram:</span>{' '}
+              <a href={IG_URL} target="_blank" rel="noreferrer" className="text-pink-600 hover:underline">@covaposh</a>
+            </div>
+            <div>
+              <span className="font-medium">WhatsApp:</span>{' '}
+              <a href={`https://wa.me/${WA_NUMBER}`} target="_blank" rel="noreferrer" className="text-pink-600 hover:underline">
+                +62 857-1626-1499
+              </a>
+            </div>
           </div>
+
           <div className="mt-4 flex flex-wrap gap-2">
-            <Button onClick={() => window.open(`https://wa.me/${WA_NUMBER}`, '_blank', 'noopener,noreferrer')}>Chat WhatsApp</Button>
-            <Button variant="outline" onClick={() => window.open(MAP_URL, '_blank', 'noopener,noreferrer')}>Lihat di Maps</Button>
-            <Button variant="outline" onClick={() => window.open
+            <Button onClick={() => window.open(`https://wa.me/${WA_NUMBER}`, '_blank', 'noopener,noreferrer')}>
+              Chat WhatsApp
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => window.open(MAP_URL, '_blank', 'noopener,noreferrer')}
+            >
+              Lihat di Maps
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => window.open(IG_URL, '_blank', 'noopener,noreferrer')}
+            >
+              Instagram
+            </Button>
+          </div>
+        </div>
+
+        {/* Kanan: peta */}
+        <div className="bg-white rounded-xl shadow-sm border border-pink-100 overflow-hidden">
+          <iframe
+            title="Lokasi COVAPOSH di Google Maps"
+            src={MAP_EMBED_URL}
+            className="w-full h-[340px] md:h-[420px] border-0"
+            loading="lazy"
+            allowFullScreen
+            referrerPolicy="no-referrer-when-downgrade"
+          />
+        </div>
+      </div>
+    </section>
+  );
+}
