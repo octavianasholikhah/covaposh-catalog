@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import ChatHint from '@/components/ui/ChatHint'; // ✅ IMPORT DI ATAS
 
 import {
   PRODUCTS, PRICE_MIN, PRICE_MAX,
@@ -58,7 +59,7 @@ export default function Page() {
 
   const filtered = useMemo(() => {
     const byText = (p: Product) => p.name.toLowerCase().includes(search.toLowerCase());
-    const byCat = (p: Product) => cat === 'SEMUA' || p.category === cat;
+    const byCat  = (p: Product) => cat === 'SEMUA' || p.category === cat;
     const byPrice = (p: Product) => p.price == null || p.price <= maxPrice;
     return PRODUCTS.filter(p => byCat(p) && byText(p) && byPrice(p)).sort(sorters[sort]);
   }, [search, cat, maxPrice, sort]);
@@ -81,6 +82,7 @@ export default function Page() {
   return (
     <main className="min-h-screen bg-gradient-to-b from-pink-50 to-white">
       <Header search={search} setSearch={setSearch} />
+      <ChatHint /> {/* ✅ DIPANGGIL DI SINI */}
       <MovingTagline />
 
       <section className={`${CONTAINER} py-6`}>
@@ -95,7 +97,9 @@ export default function Page() {
 
         {(cat !== 'SEMUA' || search) ? (
           <>
-            <h2 className="text-xl font-semibold mb-3 text-gray-700">{cat !== 'SEMUA' ? cat : 'Hasil Pencarian'}</h2>
+            <h2 className="text-xl font-semibold mb-3 text-gray-700">
+              {cat !== 'SEMUA' ? cat : 'Hasil Pencarian'}
+            </h2>
             <CarouselRow products={filtered} onOrder={openWA} />
           </>
         ) : (
