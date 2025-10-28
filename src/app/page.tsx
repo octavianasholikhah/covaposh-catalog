@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import ChatHint from '@/components/ui/ChatHint'; // ✅ IMPORT DI ATAS
+import ChatHint from '@/components/ui/ChatHint';
 
 import {
   PRODUCTS, PRICE_MIN, PRICE_MAX,
@@ -82,7 +82,7 @@ export default function Page() {
   return (
     <main className="min-h-screen bg-gradient-to-b from-pink-50 to-white">
       <Header search={search} setSearch={setSearch} />
-      <ChatHint /> {/* ✅ DIPANGGIL DI SINI */}
+      <ChatHint />
       <MovingTagline />
 
       <section className={`${CONTAINER} py-6`}>
@@ -170,12 +170,7 @@ function Header({ search, setSearch }: { search: string; setSearch: (v: string) 
               <ShoppingCart size={18} /> Pesanan
             </Link>
           </Button>
-
-          <Button asChild>
-            <Link href="/chat" aria-label="Masuk ke Chatbot" className="flex items-center gap-2">
-              <Bot size={18} /> Chatbot
-            </Link>
-          </Button>
+          {/* Chatbot header button DIHILANGKAN */}
         </div>
       </div>
     </header>
