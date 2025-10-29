@@ -81,7 +81,6 @@ export default function Page() {
   return (
     <main className="min-h-screen bg-gradient-to-b from-pink-50 to-white">
       <Header search={search} setSearch={setSearch} />
-      <ChatHint />
       <MovingTagline />
 
       <section className={`${CONTAINER} py-6`}>
