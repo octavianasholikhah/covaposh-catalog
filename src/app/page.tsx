@@ -4,11 +4,12 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Search, ShoppingCart, Filter, ChevronLeft, ChevronRight, Bot } from 'lucide-react';
+import { Search, ShoppingCart, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import ChatHint from '@/components/ui/ChatHint';
 
 import {
   PRODUCTS, PRICE_MIN, PRICE_MAX,
@@ -81,6 +82,8 @@ export default function Page() {
   return (
     <main className="min-h-screen bg-gradient-to-b from-pink-50 to-white">
       <Header search={search} setSearch={setSearch} />
+      {/* ajakan chatbot di bawah header */}
+      <ChatHint />
       <MovingTagline />
 
       <section className={`${CONTAINER} py-6`}>
@@ -121,17 +124,7 @@ export default function Page() {
         © {new Date().getFullYear()} <span className="font-semibold text-pink-600">COVAPOSH</span>. All rights reserved.
       </footer>
 
-      {/* Floating Chatbot */}
-      <Link
-        href="/chat"
-        aria-label="Buka Chatbot COVAPOSH"
-        className="fixed bottom-5 right-28 z-50 rounded-full shadow-xl px-5 py-3 bg-black text-white font-semibold hover:bg-gray-900"
-      >
-        <span className="inline-flex items-center gap-2">
-          <Bot size={18} /> Chatbot
-        </span>
-      </Link>
-
+      {/* HAPUS floating Chatbot supaya tidak numpuk */}
       {/* Floating WhatsApp */}
       <button
         onClick={() =>
@@ -168,7 +161,6 @@ function Header({ search, setSearch }: { search: string; setSearch: (v: string) 
               <ShoppingCart size={18} /> Pesanan
             </Link>
           </Button>
-          {/* Chatbot header button DIHILANGKAN */}
         </div>
       </div>
     </header>
