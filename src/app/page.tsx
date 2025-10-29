@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import ChatHint from '@/components/ui/ChatHint';
 
 import {
   PRODUCTS, PRICE_MIN, PRICE_MAX,
